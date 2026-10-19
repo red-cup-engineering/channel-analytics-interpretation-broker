@@ -6,8 +6,7 @@
   "description": "Same-principal, purpose-bound interpretation of exact channel-owned audience observations without raw-data title or credentials.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/red-cup-engineering/youtube-engineering-services-section.git",
-    "directory": "services/channel-analytics-interpretation-broker"
+    "url": "git+https://github.com/red-cup-engineering/channel-analytics-interpretation-broker.git"
   },
   "scripts": {
     "check": "for file in src/*.mjs test/*.test.mjs; do node --check \"$file\" || exit; done",
