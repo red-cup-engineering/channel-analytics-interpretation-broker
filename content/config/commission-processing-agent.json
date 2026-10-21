@@ -8,7 +8,7 @@
   "agentCard": "content/agent-cards/commission-processing.json",
   "signingKeyDataPath": "data/credentials/commission-processing-agent-card.pkcs8.pem",
   "publicJwks": "content/agent-cards/commission-processing-jwks.json",
-  "signingKid": "channel-analytics-broker-commission-processing-ed25519",
+  "signingKid": "channel-analytics-broker-commission-processing-ed25519-2026-10-21",
   "algorithm": "EdDSA",
   "customer": "urn:ame:youtube-channel-enterprise",
   "agentCardIdentity": "ni:///sha-256;_HIU-waR7PyOai0R8t7gvdwDFcT_rptbaRpv94fDoaw",
