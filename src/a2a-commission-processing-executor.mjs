@@ -18,13 +18,22 @@ export async function executeCommissionProcessingMessage(message, options = {}) 
   if (!semanticBytes(term).equals(part.bytes) || term?.[0] !== "analytics-commission-processing-request" || term.length !== 2) throw new TypeError("foreign analytics processing operation");
   const request = term[1];
   let result;
+  let sourceQualified = false;
   try {
     if (!exact(request) || request.type !== "AnalyticsCommissionProcessingRequest" || request.customer !== CHANNEL || request.provider !== ACTOR || !RECORD.test(request.commission ?? "")) throw new TypeError("invalid analytics processing request");
+    sourceQualified = true; // Safe to echo only already-admitted source identity coordinates.
     const processed = await processCommission({ channel: request.customer, commission: request.commission }, options);
     const body = { type: "AnalyticsCommissionProcessingResult", provider: ACTOR, customer: request.customer, request: request.id, commission: request.commission, disposition: "processed", interpretation: processed.interpretation.id, curiosityOffer: processed.offer.id, candidate: processed.offer.object.id, authorityWithheld: ["analytics-measurements", "raw-rows", "credentials", "research-assignment", "spending", "research-truth", "publication"] };
     result = { id: contentId(body), ...body };
-  } catch (error) {
-    const body = { type: "AnalyticsCommissionProcessingResult", provider: ACTOR, customer: request?.customer ?? null, request: request?.id ?? null, commission: request?.commission ?? null, disposition: "refused", code: "commission-unprocessable", detail: error.message, retryable: false };
+  } catch {
+    // Provider/settlement exceptions are not public evidence: raw messages
+    // can carry private participant records, Authorization or URL secrets.
+    // Malformed unsigned requests cannot force-reflect their own fields.
+    const body = { type: "AnalyticsCommissionProcessingResult", provider: ACTOR,
+      customer: sourceQualified ? CHANNEL : null,
+      request: sourceQualified ? request.id : null,
+      commission: sourceQualified ? request.commission : null,
+      disposition: "refused", code: "commission-unprocessable", retryable: false };
     result = { id: contentId(body), ...body };
   }
   return agentRmnMessage(semanticBytes(["analytics-commission-processing-result", result]), "analytics-commission-processing-result.rmn.cbor");
