@@ -11,8 +11,7 @@
   "scripts": {
     "process-commission": "node src/process-commission.mjs",
     "serve-commission-processing": "node src/serve-commission-processing-a2a.mjs",
-    "serve-curiosity-offer": "node src/serve-curiosity-offer-a2a.mjs",
-    "verify": "npm run check"
+    "serve-curiosity-offer": "node src/serve-curiosity-offer-a2a.mjs"
   },
   "engines": {
     "node": ">=22.18"
