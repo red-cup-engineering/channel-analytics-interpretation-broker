@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+import { identity } from "@red-cup-engineering/signcell/values";
 import { fileURLToPath } from "node:url";
-import { agentSenMessage, extractSenPart, parseA2aMessage } from "@red-cup-engineering/a2a-engine/sen-part";
+import { agentSenMessage, extractSenPart } from "@red-cup-engineering/a2a-engine/sen-part";
 import { admitJsonSemanticContent, EMPTY_WITNESS_ROOT, identifyJsonSemanticContent } from "@red-cup-engineering/semantic-content-identify-service";
 const A2A_CARRIER_KIND = "rsc-quiescent.a2a-json";
 const semanticBytes = (value) => identifyJsonSemanticContent({ objectKind: A2A_CARRIER_KIND, value, witnessRoot: EMPTY_WITNESS_ROOT }).bytes;
@@ -13,7 +14,7 @@ const RECORD = /^urn:sha256:[a-f0-9]{64}$/u;
 function exact(value) { if (!value || typeof value !== "object") return false; const { id, ...body } = value; return id === contentId(body); }
 
 export async function executeCommissionProcessingMessage(message, options = {}) {
-  const part = extractSenPart(parseA2aMessage(message).parts);
+  const part = extractSenPart(identity(message).parts);
   const term = decodeSemantic(part.bytes);
   if (!semanticBytes(term).equals(part.bytes) || term?.[0] !== "analytics-commission-processing-request" || term.length !== 2) throw new TypeError("foreign analytics processing operation");
   const request = term[1];

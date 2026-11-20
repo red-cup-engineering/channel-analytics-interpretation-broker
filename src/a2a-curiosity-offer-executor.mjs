@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+import { identity } from "@red-cup-engineering/signcell/values";
 import { fileURLToPath } from "node:url";
-import { agentSenMessage, extractSenPart, parseA2aMessage } from "@red-cup-engineering/a2a-engine/sen-part";
+import { agentSenMessage, extractSenPart } from "@red-cup-engineering/a2a-engine/sen-part";
 import { admitJsonSemanticContent, EMPTY_WITNESS_ROOT, identifyJsonSemanticContent } from "@red-cup-engineering/semantic-content-identify-service";
 import { ACTOR } from "./broker.mjs";
 import { pickupCuriosityOffer } from "./curiosity-offer-delivery.mjs";
@@ -17,7 +18,7 @@ const decodeSemantic = bytes => admitJsonSemanticContent({
  * result. A Promise is never a portable RMN value, and a provider's raw
  * exception may contain credentials or unauthorized private row details. */
 export async function executeCuriosityOfferMessage(message, options = {}) {
-  const part = extractSenPart(parseA2aMessage(message).parts);
+  const part = extractSenPart(identity(message).parts);
   const term = decodeSemantic(part.bytes);
   if (!semanticBytes(term).equals(part.bytes) ||
       term?.[0] !== "analytics-curiosity-offer-pickup-request" ||
