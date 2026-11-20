@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { argValue } from "@red-cup-engineering/parse-javascript-argv-service";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,5 +35,5 @@ export async function processCommission({ channel, commission } = {}, options = 
   }
   return { interpretation, offer, delivery };
 }
-function value(flag) { const index = process.argv.indexOf(flag); return index < 0 ? undefined : process.argv[index + 1]; }
-if (process.argv[1] === fileURLToPath(import.meta.url)) { const activation = JSON.parse(readFileSync(join(NODE_ROOT, "content/config/activation.json"), "utf8")); if (activation.liveProcessing !== "granted-same-principal") throw new TypeError("analytics broker live processing is not active"); await processCommission({ channel: value("--channel"), commission: value("--commission") }).then((result) => process.stdout.write(`${JSON.stringify({ type: "AnalyticsCommissionProcessingRun", interpretation: result.interpretation.id, curiosityOffer: result.offer.id, inputObservation: result.interpretation.inputObservation })}\n`)).catch((error) => { process.stderr.write(`refused: ${error.message}\n`); process.exitCode = 78; }); }
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) { const activation = JSON.parse(readFileSync(join(NODE_ROOT, "content/config/activation.json"), "utf8")); if (activation.liveProcessing !== "granted-same-principal") throw new TypeError("analytics broker live processing is not active"); await processCommission({ channel: argValue("--channel"), commission: argValue("--commission") }).then((result) => process.stdout.write(`${JSON.stringify({ type: "AnalyticsCommissionProcessingRun", interpretation: result.interpretation.id, curiosityOffer: result.offer.id, inputObservation: result.interpretation.inputObservation })}\n`)).catch((error) => { process.stderr.write(`refused: ${error.message}\n`); process.exitCode = 78; }); }
