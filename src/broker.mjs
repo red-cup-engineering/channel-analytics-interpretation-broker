@@ -9,11 +9,11 @@ import { openSeavtDocumentStore } from "@red-cup-engineering/semiotic-eavt-engin
 export const NODE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const ACTOR = "urn:ame:channel-analytics-interpretation-broker";
 // The witness-journal the broker records into and reads from: the provider agent when one is named, else the node's own filesystem journal.
-export async function witnessLogBinding(options = {}) {
+export async function witnessJournalBinding(options = {}) {
   const agentUrl = options.witnessJournalAgentUrl ?? process.env.SEAVT_DOCUMENT_AGENT;
   if (agentUrl) return { agentUrl };
-  const { custody: storage, categoryIndex } = await openSeavtDocumentStore(join(NODE_ROOT, "data", "witness-journal"));
-  return { custody: storage, categoryIndex };
+  const { custody, categoryIndex } = await openSeavtDocumentStore(join(NODE_ROOT, "data", "witness-journal"));
+  return { custody, categoryIndex };
 }
 const SOURCES = new Set(["YouTubeAnalyticsAPI", "YouTubeReportingAPI", "YouTubeDataAPI"]);
 export function canonical(value) { if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`; if (value && typeof value === "object") return `{${Object.keys(value).sort().filter((key) => value[key] !== undefined).map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(",")}}`; return JSON.stringify(value); }
@@ -41,10 +41,10 @@ function validContract(contract, observation, channel) {
 
 async function record(value, options) {
   const category = "channel-analytics.interpretation-admission", at = options.at ?? new Date().toISOString();
-  await recordSettlementRecord({ ...(await witnessLogBinding(options)), settlement: options.settlement ?? null, actor: ACTOR, category, recordedAt: at, record: { ...value } });
+  await recordSettlementRecord({ ...(await witnessJournalBinding(options)), settlement: options.settlement ?? null, actor: ACTOR, category, recordedAt: at, record: { ...value } });
 }
 
-export async function validateInterpretation({ delivery, analysis } = {}, options = {}) {
+export async function admitInterpretation({ delivery, analysis } = {}, options = {}) {
   const current = registry(), channel = delivery?.actor, payload = delivery?.object, observation = payload?.observation, contract = payload?.contract;
   if (!exactId(delivery) || delivery.type !== "Accept" || delivery.target !== ACTOR || payload?.type !== "AnalyticsProcessingDelivery" || !current.admittedChannels.includes(channel) || current.interPrincipalAdmissions.length !== 0) throw new TypeError("analytics delivery is not from an admitted same-principal channel");
   if (typeof options.verifyDelivery !== "function" || (await options.verifyDelivery(delivery)) !== true) throw new TypeError("analytics delivery lacks authenticated channel evidence");
@@ -59,10 +59,10 @@ export async function validateInterpretation({ delivery, analysis } = {}, option
   const dataRoot = resolve(options.dataRoot ?? join(NODE_ROOT, "data")), runtimeRoot = resolve(options.runtimeRoot ?? join(NODE_ROOT, "content/runtime/interpretation-locks"));
   mkdirSync(runtimeRoot, { recursive: true }); const lock = join(runtimeRoot, digest(contract.id).slice(7)); try { mkdirSync(lock); } catch (error) { if (error?.code === "EEXIST") throw new TypeError("analytics contract is concurrently processing"); throw error; }
   try {
-    const prior = (await querySettlementRecords("channel-analytics.interpretation-admission", await witnessLogBinding(options))).filter((entry) => entry.processingContract === contract.id);
+    const prior = (await querySettlementRecords("channel-analytics.interpretation-admission", await witnessJournalBinding(options))).filter((entry) => entry.processingContract === contract.id);
     if (prior.length > 1) throw new TypeError("analytics processing contract has conflicting interpretation history");
-    const validatedAt = prior[0]?.admittedAt ?? options.at ?? new Date().toISOString();
-    const body = { type: "AnalyticsInterpretation", provider: ACTOR, customer: channel, legalPrincipal: current.currentLegalPrincipal, inputObservation: observation.id, inputDigest: observation.sourceDataDigest, processingContract: contract.id, purpose: contract.purpose, permittedOutputs: [...contract.permittedOutputs], method: analysis.method, attribution: analysis.attribution, findings: [...analysis.findings], limitations: [...analysis.limitations], hypotheses: [...analysis.hypotheses], curiosityCandidates: analysis.curiosityCandidates.map((entry) => ({ question: entry.question, whyItMayMatter: entry.whyItMayMatter, restrictedMeasurementDisclosure: "none" })), platformTruthStatus: "attributed-interpretation-not-platform-truth", researchAuthority: "withheld", retentionUntil: contract.retentionUntil, admittedAt: validatedAt };
+    const admittedAt = prior[0]?.admittedAt ?? options.at ?? new Date().toISOString();
+    const body = { type: "AnalyticsInterpretation", provider: ACTOR, customer: channel, legalPrincipal: current.currentLegalPrincipal, inputObservation: observation.id, inputDigest: observation.sourceDataDigest, processingContract: contract.id, purpose: contract.purpose, permittedOutputs: [...contract.permittedOutputs], method: analysis.method, attribution: analysis.attribution, findings: [...analysis.findings], limitations: [...analysis.limitations], hypotheses: [...analysis.hypotheses], curiosityCandidates: analysis.curiosityCandidates.map((entry) => ({ question: entry.question, whyItMayMatter: entry.whyItMayMatter, restrictedMeasurementDisclosure: "none" })), platformTruthStatus: "attributed-interpretation-not-platform-truth", researchAuthority: "withheld", retentionUntil: contract.retentionUntil, admittedAt };
     const interpretation = { id: contentId(body), ...body };
     if (prior.length) {
       const recorded = prior[0];
