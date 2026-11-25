@@ -6,12 +6,12 @@ import { admitJsonSemanticContent, EMPTY_WITNESS_ROOT, identifyJsonSemanticConte
 const A2A_CARRIER_KIND = "rsc-quiescent.a2a-json";
 const semanticBytes = (value) => identifyJsonSemanticContent({ objectKind: A2A_CARRIER_KIND, value, witnessRoot: EMPTY_WITNESS_ROOT }).bytes;
 const decodeSemantic = (bytes) => admitJsonSemanticContent({ bytes, objectKind: A2A_CARRIER_KIND }).value;
-import { ACTOR, contentId } from "./broker.mjs";
+import { ACTOR } from "./broker.mjs";
 import { processCommission } from "./process-commission.mjs";
 
 const CHANNEL = "urn:ame:youtube-channel-enterprise";
 const RECORD = /^urn:sha256:[a-f0-9]{64}$/u;
-function exact(value) { if (!value || typeof value !== "object") return false; const { id, ...body } = value; return id === contentId(body); }
+function exact(value) { if (!value || typeof value !== "object") return false; const { id, ...body } = value; return id === identifyJsonSemanticContent({ objectKind: "emsweb.channel-analytics-interpretation.record", value: body, witnessRoot: EMPTY_WITNESS_ROOT }).token; }
 
 export async function executeCommissionProcessingMessage(message, options = {}) {
   const part = extractSenPart(identity(message).parts);
@@ -25,7 +25,7 @@ export async function executeCommissionProcessingMessage(message, options = {}) 
     sourceQualified = true; // Safe to echo only already-admitted source identity coordinates.
     const processed = await processCommission({ channel: request.customer, commission: request.commission }, options);
     const body = { type: "AnalyticsCommissionProcessingResult", provider: ACTOR, customer: request.customer, request: request.id, commission: request.commission, disposition: "processed", interpretation: processed.interpretation.id, curiosityOffer: processed.offer.id, candidate: processed.offer.object.id, authorityWithheld: ["analytics-measurements", "raw-rows", "credentials", "research-assignment", "spending", "research-truth", "publication"] };
-    result = { id: contentId(body), ...body };
+    result = { id: identifyJsonSemanticContent({ objectKind: "emsweb.channel-analytics-interpretation.record", value: body, witnessRoot: EMPTY_WITNESS_ROOT }).token, ...body };
   } catch {
     // Provider/settlement exceptions are not public evidence: raw messages
     // can carry private participant records, Authorization or URL secrets.
@@ -35,7 +35,7 @@ export async function executeCommissionProcessingMessage(message, options = {}) 
       request: sourceQualified ? request.id : null,
       commission: sourceQualified ? request.commission : null,
       disposition: "refused", code: "commission-unprocessable", retryable: false };
-    result = { id: contentId(body), ...body };
+    result = { id: identifyJsonSemanticContent({ objectKind: "emsweb.channel-analytics-interpretation.record", value: body, witnessRoot: EMPTY_WITNESS_ROOT }).token, ...body };
   }
   return agentSenMessage(semanticBytes(["analytics-commission-processing-result", result]), "analytics-commission-processing-result.sen.cbor");
 }

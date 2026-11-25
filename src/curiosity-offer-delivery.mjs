@@ -1,10 +1,11 @@
+import { EMPTY_WITNESS_ROOT, identifyJsonSemanticContent } from "@red-cup-engineering/semantic-content-identify-service";
 import { join } from "node:path";
 import { querySettlementRecords } from "@red-cup-engineering/semiotic-eavt-engineering-services-section/documents";
-import { ACTOR, NODE_ROOT, contentId, witnessJournalBinding } from "./broker.mjs";
+import { ACTOR, NODE_ROOT, witnessJournalBinding } from "./broker.mjs";
 export const MARKET = "urn:ame:curiosity-research-market-operations-services-section";
 export const CHANNEL = "urn:ame:youtube-channel-enterprise";
 export const OFFER_CATEGORY = "channel-analytics.curiosity-candidate-offer";
-function exact(value) { if (!value || typeof value !== "object") return false; const { id, ...body } = value; return id === contentId(body); }
+function exact(value) { if (!value || typeof value !== "object") return false; const { id, ...body } = value; return id === identifyJsonSemanticContent({ objectKind: "emsweb.channel-analytics-interpretation.record", value: body, witnessRoot: EMPTY_WITNESS_ROOT }).token; }
 export async function pickupCuriosityOffer(request, options = {}) {
   if (!exact(request)
     || request.type !== "AnalyticsCuriosityOfferPickupRequest"
