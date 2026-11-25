@@ -1,5 +1,5 @@
+import { sha256Hex } from "@red-cup-engineering/semiotic-content-address-system";
 import { EMPTY_WITNESS_ROOT, identifyJsonSemanticContent } from "@red-cup-engineering/computer-code-engine/semiotic-expression-notation/semantic-content-identity";
-import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,10 +16,7 @@ export async function witnessJournalBinding(options = {}) {
   return { custody, categoryIndex };
 }
 const SOURCES = new Set(["YouTubeAnalyticsAPI", "YouTubeReportingAPI", "YouTubeDataAPI"]);
-export function canonical(value) { if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`; if (value && typeof value === "object") return `{${Object.keys(value).sort().filter((key) => value[key] !== undefined).map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(",")}}`; return JSON.stringify(value); }
-export function digest(value) { return `sha256:${createHash("sha256").update(canonical(value)).digest("hex")}`; }
-export function contentId(value) { return identifyJsonSemanticContent({ objectKind: "emsweb.channel-analytics-interpretation.record", value: value, witnessRoot: EMPTY_WITNESS_ROOT }).token; }
-function exactId(value) { if (!value || typeof value !== "object") return false; const { id, ...body } = value; return id === contentId(body); }
+function exactId(value) { if (!value || typeof value !== "object") return false; const { id, ...body } = value; return id === identifyJsonSemanticContent({ objectKind: "emsweb.channel-analytics-interpretation.record", value: body, witnessRoot: EMPTY_WITNESS_ROOT }).token; }
 function registry() { return JSON.parse(readFileSync(join(NODE_ROOT, "content/config/principal-registry.json"), "utf8")); }
 function text(value) { return typeof value === "string" && value.trim() !== ""; }
 
@@ -57,13 +54,13 @@ export async function admitInterpretation({ delivery, analysis } = {}, options =
   if (analysis.curiosityCandidates.some((entry) => !text(entry?.question) || !text(entry?.whyItMayMatter) || entry.restrictedMeasurementDisclosure !== "none")) throw new TypeError("curiosity candidate is not disclosure-safe");
   if (typeof options.verifyDisclosure !== "function" || (await options.verifyDisclosure(observation, analysis)) !== true) throw new TypeError("analysis lacks independent disclosure review");
   const dataRoot = resolve(options.dataRoot ?? join(NODE_ROOT, "data")), runtimeRoot = resolve(options.runtimeRoot ?? join(NODE_ROOT, "content/runtime/interpretation-locks"));
-  mkdirSync(runtimeRoot, { recursive: true }); const lock = join(runtimeRoot, digest(contract.id).slice(7)); try { mkdirSync(lock); } catch (error) { if (error?.code === "EEXIST") throw new TypeError("analytics contract is concurrently processing"); throw error; }
+  mkdirSync(runtimeRoot, { recursive: true }); const lock = join(runtimeRoot, sha256Hex(contract.id)); try { mkdirSync(lock); } catch (error) { if (error?.code === "EEXIST") throw new TypeError("analytics contract is concurrently processing"); throw error; }
   try {
     const prior = (await querySettlementRecords("channel-analytics.interpretation-admission", await witnessJournalBinding(options))).filter((entry) => entry.processingContract === contract.id);
     if (prior.length > 1) throw new TypeError("analytics processing contract has conflicting interpretation history");
     const admittedAt = prior[0]?.admittedAt ?? options.at ?? new Date().toISOString();
     const body = { type: "AnalyticsInterpretation", provider: ACTOR, customer: channel, legalPrincipal: current.currentLegalPrincipal, inputObservation: observation.id, inputDigest: observation.sourceDataDigest, processingContract: contract.id, purpose: contract.purpose, permittedOutputs: [...contract.permittedOutputs], method: analysis.method, attribution: analysis.attribution, findings: [...analysis.findings], limitations: [...analysis.limitations], hypotheses: [...analysis.hypotheses], curiosityCandidates: analysis.curiosityCandidates.map((entry) => ({ question: entry.question, whyItMayMatter: entry.whyItMayMatter, restrictedMeasurementDisclosure: "none" })), platformTruthStatus: "attributed-interpretation-not-platform-truth", researchAuthority: "withheld", retentionUntil: contract.retentionUntil, admittedAt };
-    const interpretation = { id: contentId(body), ...body };
+    const interpretation = { id: identifyJsonSemanticContent({ objectKind: "emsweb.channel-analytics-interpretation.record", value: body, witnessRoot: EMPTY_WITNESS_ROOT }).token, ...body };
     if (prior.length) {
       const recorded = prior[0];
       if (!exactId(recorded) || recorded.id !== interpretation.id) throw new TypeError("analytics processing replay changed its interpretation");
@@ -77,6 +74,6 @@ export function formCuriosityCandidateOffer(interpretation, index, offeredAt = n
   if (!exactId(interpretation) || interpretation.type !== "AnalyticsInterpretation" || interpretation.provider !== ACTOR || !interpretation.permittedOutputs?.includes("CuriosityCandidate") || !Number.isInteger(index) || index < 0 || index >= interpretation.curiosityCandidates.length || !Number.isFinite(Date.parse(offeredAt))) throw new TypeError("curiosity offer requires an exactly permitted interpretation candidate");
   const candidate = interpretation.curiosityCandidates[index];
   const objectBody = { type: "CuriosityCandidate", motivatingInterpretation: interpretation.id, question: candidate.question, whyItMayMatter: candidate.whyItMayMatter, permittedUses: ["consider-for-research-assignment"], evidenceStatus: "demand-signal-not-research-evidence", bidStatus: "not-a-bid", spendingAuthority: "none" };
-  const object = { id: contentId(objectBody), ...objectBody };
-  const body = { type: "Offer", actor: ACTOR, object, published: offeredAt }; return { id: contentId(body), ...body };
+  const object = { id: identifyJsonSemanticContent({ objectKind: "emsweb.channel-analytics-interpretation.record", value: objectBody, witnessRoot: EMPTY_WITNESS_ROOT }).token, ...objectBody };
+  const body = { type: "Offer", actor: ACTOR, object, published: offeredAt }; return { id: identifyJsonSemanticContent({ objectKind: "emsweb.channel-analytics-interpretation.record", value: body, witnessRoot: EMPTY_WITNESS_ROOT }).token, ...body };
 }
